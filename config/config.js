@@ -5,7 +5,7 @@ module.exports = {
   openAIBatchSize: 50,
   outputCSV: "./data/results.csv",
   authURL: "https://hubspotcallai.integration.mindtickle.com/login",
-  username: process.env.USERNAME || "sharaj.rewoo@mindtickle.com",
-  password: process.env.PASSWORD || "Pass@1213",
+  username: process.env.USERNAME,
+  password: process.env.PASSWORD,
   authFilePath: "./playwright/.auth/user.json",
 };
