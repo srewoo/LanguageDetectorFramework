@@ -1,0 +1,17 @@
+# Node.js dependencies
+node_modules/
+
+# Log files
+*.log
+
+# Output directory
+output/
+
+# Screenshots
+/data/screenshots/
+
+# JSON files for page texts
+/data/pageTexts.json
+
+#.env file
+.env

@@ -1,0 +1,9 @@
+2024/12/26-19:07:23.612 2d07 Reusing MANIFEST /Users/sharajrewoo/DemoReposQA/LanguageDetectorFramework/user_data/Default/Local Storage/leveldb/MANIFEST-000001
+2024/12/26-19:07:23.615 2d07 Recovering log #42
+2024/12/26-19:07:23.616 2d07 Level-0 table #45: started
+2024/12/26-19:07:23.624 2d07 Level-0 table #45: 25171 bytes OK
+2024/12/26-19:07:23.624 2d07 Recovering log #44
+2024/12/26-19:07:23.625 2d07 Reusing old log /Users/sharajrewoo/DemoReposQA/LanguageDetectorFramework/user_data/Default/Local Storage/leveldb/000044.log 
+2024/12/26-19:07:23.632 2d07 Delete type=0 #42
+2024/12/26-19:08:52.302 3903 Level-0 table #47: started
+2024/12/26-19:08:52.322 3903 Level-0 table #47: 25036 bytes OK

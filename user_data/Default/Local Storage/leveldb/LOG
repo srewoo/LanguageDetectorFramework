@@ -1,0 +1,18 @@
+2024/12/26-19:09:33.730 3c03 Reusing MANIFEST /Users/sharajrewoo/DemoReposQA/LanguageDetectorFramework/user_data/Default/Local Storage/leveldb/MANIFEST-000001
+2024/12/26-19:09:33.746 3c03 Recovering log #44
+2024/12/26-19:09:33.746 3c03 Level-0 table #47: started
+2024/12/26-19:09:33.753 3c03 Level-0 table #47: 25036 bytes OK
+2024/12/26-19:09:33.755 3c03 Recovering log #46
+2024/12/26-19:09:33.757 3c03 Reusing old log /Users/sharajrewoo/DemoReposQA/LanguageDetectorFramework/user_data/Default/Local Storage/leveldb/000046.log 
+2024/12/26-19:09:33.766 3c03 Delete type=0 #44
+2024/12/26-19:09:33.768 3803 Compacting 4@0 + 1@1 files
+2024/12/26-19:09:33.780 3803 Generated table #48@0: 264 keys, 22214 bytes
+2024/12/26-19:09:33.780 3803 Compacted 4@0 + 1@1 files => 22214 bytes
+2024/12/26-19:09:33.785 3803 compacted to: files[ 0 1 1 0 0 0 0 ]
+2024/12/26-19:09:33.786 3803 Delete type=2 #39
+2024/12/26-19:09:33.786 3803 Delete type=2 #43
+2024/12/26-19:09:33.786 3803 Delete type=2 #41
+2024/12/26-19:09:33.786 3803 Delete type=2 #45
+2024/12/26-19:09:33.786 3803 Delete type=2 #47
+2024/12/26-19:10:55.368 3c03 Level-0 table #50: started
+2024/12/26-19:10:55.384 3c03 Level-0 table #50: 25356 bytes OK
