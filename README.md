@@ -31,3 +31,16 @@ This project is licensed under the MIT License.
 OPENAI_API_KEY=
 USERNAME=
 PASSWORD=
+
+
+## TODO:  implemente
+page name wise error dected
+add modals
+    -modal Done
+    -modal name to be added in results
+add url in results
+remove hard coding in auth function done
+3 tabs issue
+
+## CallOuts:
+

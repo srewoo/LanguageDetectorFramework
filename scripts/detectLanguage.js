@@ -1,61 +1,61 @@
 const fs = require('fs');
 const { OpenAI } = require('openai');
-const { RateLimiter, withRetry } = require('../utils');
+const { RateLimiter, withRetry, captureModalTitleOrHeader } = require('../utils/utils.js');
 const { validateSentence, sanitizeInput } = require('../utils/validation');
 const ProgressMonitor = require('../utils/monitoring');
 const ResultsManager = require('../utils/results');
 const settings = require('../config/settings');
 require('dotenv').config();
 
-// Initialize OpenAI API client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Initialize components
 const rateLimiter = new RateLimiter(settings.rateLimits.maxRequests, settings.rateLimits.timeWindow);
 const progressMonitor = new ProgressMonitor();
 const resultsManager = new ResultsManager();
-
-// In-memory cache for language detection results
 const languageCache = new Map();
 
-async function detectLanguagesFromSentences(data) {
+async function detectLanguagesFromSentences(data, page) {
   const results = [];
   const { batchSize } = settings;
 
   try {
-    const totalSentences = data.reduce((count, { content }) => count + content.length, 0);
+    const totalSentences = data.reduce((count, item) => count + (item.content?.length || 0), 0);
     progressMonitor.startProcess(totalSentences);
     let processedSentences = 0;
 
-    progressMonitor.log('info', `Processing ${data.length} pages...`);
+    progressMonitor.log('info', `Processing ${data.length} items...`);
 
-    // Process pages in batches
     for (let i = 0; i < data.length; i += batchSize) {
       const batch = data.slice(i, i + batchSize);
-      const batchPromises = batch.map(async ({ pageName, content }) => {
+      const batchPromises = batch.map(async (item) => {
+        const pageName = item.pageName || item["modal title"] || "Unknown Page";
+        const content = item.content || [];
+
+        // Log the page object to ensure it's defined
+        console.log('Page object:', page);
+
         const detectionPromises = content.map(async (sentence) => {
           const startTime = Date.now();
-          
           try {
-            // Validate and sanitize input
             sentence = sanitizeInput(sentence);
             validateSentence(sentence);
 
-            // Check cache first
             const cacheKey = `${pageName}:${sentence}`;
             if (languageCache.has(cacheKey)) {
               progressMonitor.recordRequest(true, 0, true);
               processedSentences++;
               progressMonitor.updateProgress(processedSentences);
-              return { PageName: pageName, Sentence: sentence, Language: languageCache.get(cacheKey) };
+              return {
+                PageName: pageName,
+                Sentence: sentence,
+                Language: languageCache.get(cacheKey),
+              };
             }
 
-            // Apply rate limiting
             await rateLimiter.throttle();
 
-            // Use retry mechanism for API calls
             const response = await withRetry(
               async () => {
                 return await openai.chat.completions.create({
@@ -63,7 +63,7 @@ async function detectLanguagesFromSentences(data) {
                   messages: [
                     {
                       role: 'user',
-                      content: `You are an expert language detection assistant. Analyze the following sentence and detect all languages present. Respond only with the detected languages separated by commas. Here is the sentence: "${sentence}"`,
+                      content: `Detect the language of this text. Respond with only the language name in lowercase: "${sentence}"`,
                     },
                   ],
                 });
@@ -76,23 +76,28 @@ async function detectLanguagesFromSentences(data) {
               }
             );
 
-            const detectedLanguages = response.choices[0]?.message?.content?.trim() || "Unknown";
-            const responseTime = Date.now() - startTime;
+            const detectedLanguage = response.choices[0]?.message?.content?.trim().toLowerCase() || "unknown";
+            languageCache.set(cacheKey, detectedLanguage);
             
-            // Cache the result
-            languageCache.set(cacheKey, detectedLanguages);
-            
-            progressMonitor.recordRequest(true, responseTime);
+            progressMonitor.recordRequest(true, Date.now() - startTime);
             processedSentences++;
             progressMonitor.updateProgress(processedSentences);
 
-            return { PageName: pageName, Sentence: sentence, Language: detectedLanguages };
+            return {
+              PageName: pageName,
+              Sentence: sentence,
+              Language: detectedLanguage,
+            };
           } catch (error) {
             progressMonitor.log('error', `Error detecting language for sentence: "${sentence}": ${error.message}`);
             progressMonitor.recordRequest(false, Date.now() - startTime);
             processedSentences++;
             progressMonitor.updateProgress(processedSentences);
-            return { PageName: pageName, Sentence: sentence, Language: "Detection error" };
+            return {
+              PageName: pageName,
+              Sentence: sentence,
+              Language: "detection error",
+            };
           }
         });
 
@@ -102,15 +107,13 @@ async function detectLanguagesFromSentences(data) {
       await Promise.all(batchPromises);
     }
 
-    // Get final metrics
     const metrics = progressMonitor.endProcess();
     progressMonitor.log('info', 'Processing completed. Metrics:', metrics);
 
-    // Save results in all supported formats
-    for (const format of settings.outputFormats) {
-      const outputPath = await resultsManager.saveResults(results, format);
-      progressMonitor.log('info', `Results saved in ${format} format: ${outputPath}`);
-    }
+    // Save results in JSON format
+    const outputPath = './output/language_detection_results.json';
+    fs.writeFileSync(outputPath, JSON.stringify(results, null, 2));
+    progressMonitor.log('info', `Results saved to: ${outputPath}`);
 
     return results;
   } catch (error) {
@@ -119,9 +122,9 @@ async function detectLanguagesFromSentences(data) {
   }
 }
 
-async function detectLanguages() {
+async function detectLanguages(page) {
   const data = JSON.parse(fs.readFileSync('./data/pageTexts.json'));
-  await detectLanguagesFromSentences(data);
+  await detectLanguagesFromSentences(data, page);
 }
 
 module.exports = {

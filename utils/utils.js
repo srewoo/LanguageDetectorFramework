@@ -1,41 +1,22 @@
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
-const { authURL, username, password } = require('./config/common');
+const { authURL, username, password } = require('../config/common.js');
+const locators = require('../locators/callAI/locator.js');
 
-async function authenticate(context) {
-  const page = await context.newPage();
-
-  try {
-    console.log("Navigating to authentication URL...");
-    await page.goto(authURL);
-
-    await page.waitForSelector('button[type="button"] span', { timeout: 10000 });
-    console.log("Performing login...");
-    await page.locator('button[type="button"] span').click();
-    await page.fill('input[name="username"]', username);
-    await page.fill('input[name="password"]', password);
-    await page.getByRole('button', { name: 'Sign in' }).click();
-
-    await page.waitForSelector('.icon.icon-phoneCall.learner-header-menu-item-icon', { timeout: 10000 });
-    console.log('Login successful!');
-
-    await page.close();
-  } catch (error) {
-    console.error(`Authentication error: ${error.message}`);
-  }
-}
 
 async function waitForPageLoad(page) {
   console.log('Waiting for page to fully load...');
-  //await page.waitForLoadState('networkidle');  
   await page.waitForLoadState('load');
   await page.waitForTimeout(3000);
   console.log('Page fully loaded.');
 }
 
-async function saveScreenshot(page, pageName) {
-  const filePath = `./data/screenshots/${pageName}.png`;
+async function saveScreenshot(page, pageName, modalTitle) {
+  const screenshotName = modalTitle || pageName;
+  const fileName = `${screenshotName}.png`;
+  const filePath = `./data/screenshots/${fileName}`;
+  
   console.log(`Saving screenshot to: ${filePath}`);
   await page.screenshot({ path: filePath, fullPage: true });
 }
@@ -91,6 +72,7 @@ async function getVisibleTextElements() {
   }
 }
 
+//Saved the unique text elements
 async function savePageContent(page, pageName, texts) {
   console.log(`Saving visible content for ${pageName}`);
 
@@ -103,6 +85,54 @@ async function savePageContent(page, pageName, texts) {
   console.log(`Content saved to ${filePath}`);
 }
 
+//Capture the contents of the modal
+async function captureModalContent(page) {
+    // ADD MORE SELECTORS
+    const modalSelectors = [
+        '.cai-modal-body',
+        '[role="dialog"]',
+        '.modal',
+        '.popup',
+        '.dialog',
+    ];
+
+    // Capture modal content
+    const { modalTitle, modalContent } = await page.evaluate((selectors) => {
+        const modal = selectors
+            .map(selector => document.querySelector(selector))
+            .find(el => el !== null); // Find the first visible modal
+
+        const title = modal ? modal.querySelector('h1, .modal-title, .popup-title')?.innerText.trim() || 'Untitled' : 'No modal found';
+        const content = modal ? modal.innerText.trim() : 'No content available';
+        return { modalTitle: title, modalContent: content };
+    }, modalSelectors);
+
+    // File path to save data
+    const pageTextsPath = './data/pageTexts.json';
+
+    // Read or initialize the JSON file
+    let pageTexts = [];
+    if (fs.existsSync(pageTextsPath)) {
+        const data = fs.readFileSync(pageTextsPath, 'utf-8');
+        pageTexts = JSON.parse(data);
+    }
+
+    // Transform the modal content and save it
+    const transformedContent = {
+        "modal title": modalTitle,
+        "content": modalContent.split('\n') // Split the content into an array
+    };
+
+    // Append transformed content to the pageTexts array
+    pageTexts.push(transformedContent);
+
+    // Write updated data back to the JSON file
+    fs.writeFileSync(pageTextsPath, JSON.stringify(pageTexts, null, 2), 'utf-8');
+
+    return transformedContent;
+}
+
+//Cleanup before test: delete screenshots, pageTexts.json, and output
 async function cleanupBeforeTestExecution() {
   const pathsToCheck = [
     './data/screenshots',
@@ -128,7 +158,7 @@ async function cleanupBeforeTestExecution() {
             console.log(`Deleted directory: ${filePath}`);
           }
         } else {
-          // If it's a file, delete it
+
           fs.unlinkSync(filePath);
           console.log(`Deleted file: ${filePath}`);
         }
@@ -147,6 +177,7 @@ class RateLimiter {
     this.requests = [];
   }
 
+  // Throttle requests
   async throttle() {
     const now = Date.now();
     this.requests = this.requests.filter(time => now - time < this.timeWindow);
@@ -186,10 +217,10 @@ async function withRetry(fn, options = {}) {
 }
 
 module.exports = {
-  authenticate,
   waitForPageLoad,
   saveScreenshot,
   savePageContent,
+  captureModalContent,
   cleanupBeforeTestExecution,
   RateLimiter,
   withRetry
